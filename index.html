@@ -59,11 +59,34 @@
         }
         .test-btn {
             background: #2196F3;
-            width: auto;
-            padding: 10px 20px;
-            display: inline-block;
+            color: white;
+            border: none;
+            padding: 10px 15px;
             margin: 5px;
+            border-radius: 8px;
+            font-weight: bold;
         }
+
+        /* POP-UP */
+        #successModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: #1e2a44;
+            padding: 30px 25px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 340px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+        .modal-content h2 { color: #4CAF50; margin: 0 0 10px 0; }
     </style>
 </head>
 <body>
@@ -73,7 +96,6 @@
         <div id="poin">0</div>
         <p style="font-style: italic; color: #a5d6a7;">"Sampahmu jadi hadiahmu!"</p>
         
-        <!-- Tombol Test -->
         <div style="margin-top: 15px;">
             <button class="test-btn" onclick="tambahPoin(10)">+10 Poin</button>
             <button class="test-btn" onclick="tambahPoin(50)">+50 Poin</button>
@@ -81,7 +103,7 @@
         </div>
     </div>
 
-    <h2 style="margin-top: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">Tukar Hadiah Kamu</h2>
+    <h2 style="margin-top: 30px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">Tukar Hadiah Kamu</h2>
     
     <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; padding: 20px;">
       <div class="box-hadiah">
@@ -101,6 +123,21 @@
       </div>
     </div>
 
+    <!-- POP UP -->
+    <div id="successModal">
+        <div class="modal-content">
+            <h2>✅ Berhasil Menukar!</h2>
+            <p id="namaHadiah" style="font-size:18px; margin:15px 0;"></p>
+            <p>Silahkan hubungi nomor di bawah ini untuk pengambilan hadiah:</p>
+            <a href="https://wa.me/62881022985998" target="_blank" 
+               style="background:#25D366; color:white; padding:12px 20px; border-radius:50px; text-decoration:none; display:inline-block; margin:15px 0;">
+                📲 0881022985998 (WA)
+            </a>
+            <br>
+            <button onclick="tutupModal()" style="background:#666; padding:8px 25px; border:none; border-radius:8px;">Tutup</button>
+        </div>
+    </div>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyD9mZorhqDFYLzgTStpOX6tz7LaYb2Qj80",
@@ -112,31 +149,14 @@
             appId: "27587067022"
         };
 
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         let poinGlobal = 0;
 
         function aturTombol(poin) {
-            const items = [
-                {id: "btn-10", harga: 10},
-                {id: "btn-50", harga: 50},
-                {id: "btn-75", harga: 75}
-            ];
-
-            items.forEach(item => {
-                const btn = document.getElementById(item.id);
-                if (btn) {
-                    if (poin >= item.harga) {
-                        btn.disabled = false;
-                        btn.style.backgroundColor = "#4CAF50";
-                    } else {
-                        btn.disabled = true;
-                        btn.style.backgroundColor = "#666";
-                    }
-                }
-            });
+            document.getElementById("btn-10").disabled = poin < 10;
+            document.getElementById("btn-50").disabled = poin < 50;
+            document.getElementById("btn-75").disabled = poin < 75;
         }
 
         database.ref('/trash_points').on('value', (snapshot) => {
@@ -147,35 +167,29 @@
 
         function tukarPoin(namaBarang, harga) {
             if (poinGlobal < harga) {
-                alert(`❌ Poin kamu (${poinGlobal}) tidak cukup untuk menukar ${namaBarang}`);
+                alert("Poin tidak cukup!");
                 return;
             }
-            if (!confirm(`Yakin ingin menukar ${namaBarang} dengan ${harga} poin?`)) return;
+            if (!confirm(`Yakin tukar ${namaBarang}?`)) return;
 
-            const poinRef = database.ref('/trash_points');
-            poinRef.transaction((currentValue) => {
-                let p = Number(currentValue) || 0;
+            database.ref('/trash_points').transaction((current) => {
+                let p = Number(current) || 0;
                 if (p >= harga) return p - harga;
             }, (error, committed) => {
                 if (committed) {
-                    alert(`✅ Berhasil menukar ${namaBarang}`);
-                    alert("Silahkan hubungi 0881022985998 untuk pengambilan hadiah.");
-                } else {
-                    alert("Transaksi gagal.");
+                    document.getElementById('namaHadiah').innerText = namaBarang;
+                    document.getElementById('successModal').style.display = "flex";
                 }
             });
         }
 
-        // Fungsi Tambah Poin untuk Test
-        function tambahPoin(jumlah) {
-            const poinRef = database.ref('/trash_points');
-            poinRef.transaction((current) => {
-                return (Number(current) || 0) + jumlah;
-            });
-            alert(`✅ Berhasil +${jumlah} Poin`);
+        function tutupModal() {
+            document.getElementById('successModal').style.display = "none";
         }
 
-        window.onload = () => aturTombol(0);
+        function tambahPoin(jumlah) {
+            database.ref('/trash_points').transaction((current) => (Number(current) || 0) + jumlah);
+        }
     </script>
 </body>
 </html>
