@@ -57,6 +57,13 @@
             cursor: not-allowed;
             opacity: 0.6;
         }
+        .test-btn {
+            background: #2196F3;
+            width: auto;
+            padding: 10px 20px;
+            display: inline-block;
+            margin: 5px;
+        }
     </style>
 </head>
 <body>
@@ -65,6 +72,13 @@
         <h1>Poin Kamu</h1>
         <div id="poin">0</div>
         <p style="font-style: italic; color: #a5d6a7;">"Sampahmu jadi hadiahmu!"</p>
+        
+        <!-- Tombol Test -->
+        <div style="margin-top: 15px;">
+            <button class="test-btn" onclick="tambahPoin(10)">+10 Poin</button>
+            <button class="test-btn" onclick="tambahPoin(50)">+50 Poin</button>
+            <button class="test-btn" onclick="tambahPoin(100)">+100 Poin</button>
+        </div>
     </div>
 
     <h2 style="margin-top: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">Tukar Hadiah Kamu</h2>
@@ -125,46 +139,43 @@
             });
         }
 
-        // Ambil data realtime
         database.ref('/trash_points').on('value', (snapshot) => {
             poinGlobal = Number(snapshot.val()) || 0;
             document.getElementById('poin').innerText = poinGlobal;
             aturTombol(poinGlobal);
         });
 
-        // Fungsi Tukar Poin
         function tukarPoin(namaBarang, harga) {
             if (poinGlobal < harga) {
                 alert(`❌ Poin kamu (${poinGlobal}) tidak cukup untuk menukar ${namaBarang}`);
                 return;
             }
-
             if (!confirm(`Yakin ingin menukar ${namaBarang} dengan ${harga} poin?`)) return;
 
             const poinRef = database.ref('/trash_points');
-            
             poinRef.transaction((currentValue) => {
                 let p = Number(currentValue) || 0;
-                if (p >= harga) {
-                    return p - harga;
-                }
-                return; // Batalkan transaksi
+                if (p >= harga) return p - harga;
             }, (error, committed) => {
-                if (error) {
-                    alert("❌ Terjadi kesalahan: " + error.message);
-                } else if (committed) {
-                    alert(`✅ Berhasil! Kamu berhasil menukar ${namaBarang}`);
-                    alert("Silahkan hubungi 0881022985998 (SARE SYS) untuk pengambilan hadiah.");
+                if (committed) {
+                    alert(`✅ Berhasil menukar ${namaBarang}`);
+                    alert("Silahkan hubungi 0881022985998 untuk pengambilan hadiah.");
                 } else {
-                    alert("❌ Poin tidak cukup atau transaksi gagal.");
+                    alert("Transaksi gagal.");
                 }
             });
         }
 
-        // Set tombol disabled saat pertama kali load
-        window.onload = () => {
-            aturTombol(0);
-        };
+        // Fungsi Tambah Poin untuk Test
+        function tambahPoin(jumlah) {
+            const poinRef = database.ref('/trash_points');
+            poinRef.transaction((current) => {
+                return (Number(current) || 0) + jumlah;
+            });
+            alert(`✅ Berhasil +${jumlah} Poin`);
+        }
+
+        window.onload = () => aturTombol(0);
     </script>
 </body>
 </html>
