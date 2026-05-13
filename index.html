@@ -6,7 +6,6 @@
     <title>Reward Sampah Pintar</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
     <style>
         body { 
@@ -18,30 +17,45 @@
             background-attachment: fixed;
             padding-top: 50px;
             margin: 0;
+            color: white;
         }
         .card { 
             background: rgba(30, 42, 68, 0.85); 
-            color: white;
             width: 85%; 
             max-width: 400px; 
-            margin: auto; 
+            margin: 20px auto; 
             padding: 25px; 
             border-radius: 20px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
         }
-        #poin { font-size: 100px; font-weight: bold; color: #4CAF50; margin: 10px 0; }
+        #poin { 
+            font-size: 100px; 
+            font-weight: bold; 
+            color: #4CAF50; 
+            margin: 10px 0; 
+        }
         .box-hadiah {
             background: rgba(30, 42, 68, 0.9); 
-            color: white;
             padding: 15px; 
             border-radius: 15px; 
             width: 140px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        .box-hadiah p { color: #4CAF50; font-weight: bold; font-size: 20px; margin: 5px 0; }
         button {
-            color: white; border: none; padding: 10px; border-radius: 8px; 
-            font-weight: bold; width: 100%; transition: 0.3s;
+            color: white; 
+            border: none; 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            width: 100%; 
+            margin-top: 8px;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #666 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
     </style>
 </head>
@@ -53,7 +67,7 @@
         <p style="font-style: italic; color: #a5d6a7;">"Sampahmu jadi hadiahmu!"</p>
     </div>
 
-    <h2 style="margin-top: 30px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">Tukar Hadiah Kamu</h2>
+    <h2 style="margin-top: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">Tukar Hadiah Kamu</h2>
     
     <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; padding: 20px;">
       <div class="box-hadiah">
@@ -77,74 +91,80 @@
         const firebaseConfig = {
             apiKey: "AIzaSyD9mZorhqDFYLzgTStpOX6tz7LaYb2Qj80",
             authDomain: "kokulikuler-sare-sys.firebaseapp.com",
-            databaseURL: "https://kokulikuler-sare-sys-default-rtdb.asia-southeast1.firebasedatabase.app",
+            databaseURL: "https://smarttrash-default-rtdb.firebaseio.com",
             projectId: "kokulikuler-sare-sys",
             storageBucket: "kokulikuler-sare-sys.appspot.com",
             messagingSenderId: "27587067022",
             appId: "27587067022"
         };
 
-        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
-        const database = firebase.database(); // Tambahkan ini agar aplikasi bisa mengakses database
-firebase.auth().signInAnonymously()
-    .then(() => {
-        console.log("Berhasil Login!");
-    })
-    .catch((error) => {
-        console.error("Gagal Login: ", error.message);
-    });
-        let poinGlobal = 0; 
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const database = firebase.database();
+        let poinGlobal = 0;
 
-        // Fungsi Update Tombol
-        function aturTombol(id, harga, poinUser) {
-            const btn = document.getElementById(id);
-            if (btn) {
-                if (poinUser >= harga) {
-                    btn.disabled = false;
-                    btn.style.backgroundColor = "#4CAF50";
-                    btn.style.opacity = "1";
-                    btn.style.cursor = "pointer";
-                } else {
-                    btn.disabled = true;
-                    btn.style.backgroundColor = "#888";
-                    btn.style.opacity = "0.5";
-                    btn.style.cursor = "not-allowed";
+        function aturTombol(poin) {
+            const items = [
+                {id: "btn-10", harga: 10},
+                {id: "btn-50", harga: 50},
+                {id: "btn-75", harga: 75}
+            ];
+
+            items.forEach(item => {
+                const btn = document.getElementById(item.id);
+                if (btn) {
+                    if (poin >= item.harga) {
+                        btn.disabled = false;
+                        btn.style.backgroundColor = "#4CAF50";
+                    } else {
+                        btn.disabled = true;
+                        btn.style.backgroundColor = "#666";
+                    }
                 }
-            }
+            });
         }
 
-        // Ambil data Realtime
+        // Ambil data realtime
         database.ref('/trash_points').on('value', (snapshot) => {
-            const val = snapshot.val();
-            poinGlobal = (val !== null) ? Number(val) : 0; // Pastikan jadi angka
+            poinGlobal = Number(snapshot.val()) || 0;
             document.getElementById('poin').innerText = poinGlobal;
-
-            aturTombol("btn-10", 10, poinGlobal);
-            aturTombol("btn-50", 50, poinGlobal);
-            aturTombol("btn-75", 75, poinGlobal);
+            aturTombol(poinGlobal);
         });
 
         // Fungsi Tukar Poin
         function tukarPoin(namaBarang, harga) {
             if (poinGlobal < harga) {
-                alert("Maaf, poin kamu (" + poinGlobal + ") tidak cukup untuk menukar " + namaBarang + "!");
+                alert(`❌ Poin kamu (${poinGlobal}) tidak cukup untuk menukar ${namaBarang}`);
                 return;
             }
 
+            if (!confirm(`Yakin ingin menukar ${namaBarang} dengan ${harga} poin?`)) return;
+
             const poinRef = database.ref('/trash_points');
+            
             poinRef.transaction((currentValue) => {
                 let p = Number(currentValue) || 0;
-                if (p >= harga) { return p - harga; }
-                return; 
+                if (p >= harga) {
+                    return p - harga;
+                }
+                return; // Batalkan transaksi
             }, (error, committed) => {
-                if (committed) {
-                    alert("BERHASIL! Poin kamu telah ditukar dengan " + namaBarang);
+                if (error) {
+                    alert("❌ Terjadi kesalahan: " + error.message);
+                } else if (committed) {
+                    alert(`✅ Berhasil! Kamu berhasil menukar ${namaBarang}`);
                     alert("Silahkan hubungi 0881022985998 (SARE SYS) untuk pengambilan hadiah.");
                 } else {
-                    alert("Transaksi gagal. Pastikan koneksi internet lancar.");
+                    alert("❌ Poin tidak cukup atau transaksi gagal.");
                 }
             });
         }
+
+        // Set tombol disabled saat pertama kali load
+        window.onload = () => {
+            aturTombol(0);
+        };
     </script>
 </body>
 </html>
